@@ -1,0 +1,426 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Organizer Dashboard – Mr.Certi</title>
+  <meta name="description" content="Organizer dashboard for Mr.Certi – upload templates, manage participants, generate and send certificates."/>
+  <link rel="preconnect" href="https://fonts.googleapis.com"/>
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet"/>
+  <link rel="stylesheet" href="css/global.css"/>
+  <link rel="stylesheet" href="css/dashboard.css"/>
+</head>
+<body style="background:var(--gray-50)">
+
+<!-- Page Loading -->
+<div class="page-loading" id="pageLoading">
+  <div class="nav-brand">
+    <div class="brand-icon">
+      <svg width="36" height="36" viewBox="0 0 28 28" fill="none">
+        <rect width="28" height="28" rx="8" fill="url(#lg1)"/>
+        <path d="M7 10h14M7 14h10M7 18h8" stroke="white" stroke-width="2" stroke-linecap="round"/>
+        <circle cx="21" cy="18" r="3" fill="white" opacity="0.9"/>
+        <defs><linearGradient id="lg1" x1="0" y1="0" x2="28" y2="28"><stop stop-color="#0ea5e9"/><stop offset="1" stop-color="#0284c7"/></linearGradient></defs>
+      </svg>
+    </div>
+    <span class="brand-name">Mr.<span>Certi</span></span>
+  </div>
+  <div class="loading-bar"><div class="loading-bar-fill"></div></div>
+</div>
+
+<div class="dashboard-wrapper" id="dashboardWrapper" style="display:none">
+  <!-- Sidebar Overlay -->
+  <div class="sidebar-overlay" id="sidebarOverlay"></div>
+
+  <!-- Sidebar -->
+  <aside class="sidebar" id="sidebar">
+    <div class="sidebar-header">
+      <div class="sidebar-brand">
+        <div class="brand-icon">
+          <svg width="28" height="28" viewBox="0 0 28 28" fill="none">
+            <rect width="28" height="28" rx="8" fill="url(#sblg)"/>
+            <path d="M7 10h14M7 14h10M7 18h8" stroke="white" stroke-width="2" stroke-linecap="round"/>
+            <circle cx="21" cy="18" r="3" fill="white" opacity="0.9"/>
+            <defs><linearGradient id="sblg" x1="0" y1="0" x2="28" y2="28"><stop stop-color="#0ea5e9"/><stop offset="1" stop-color="#0284c7"/></linearGradient></defs>
+          </svg>
+        </div>
+        <span class="brand-name">Mr.<span>Certi</span></span>
+      </div>
+    </div>
+
+    <nav class="sidebar-nav">
+      <div class="nav-section">
+        <div class="nav-section-label">Main</div>
+        <button class="nav-item active" data-panel="overview" id="navOverview">
+          <span class="nav-icon"><svg width="18" height="18" viewBox="0 0 18 18" fill="none"><rect x="2" y="2" width="6" height="6" rx="1.5" stroke="currentColor" stroke-width="1.5"/><rect x="10" y="2" width="6" height="6" rx="1.5" stroke="currentColor" stroke-width="1.5"/><rect x="2" y="10" width="6" height="6" rx="1.5" stroke="currentColor" stroke-width="1.5"/><rect x="10" y="10" width="6" height="6" rx="1.5" stroke="currentColor" stroke-width="1.5"/></svg></span>
+          Overview
+        </button>
+        <button class="nav-item" data-panel="participants" id="navParticipants">
+          <span class="nav-icon"><svg width="18" height="18" viewBox="0 0 18 18" fill="none"><circle cx="9" cy="6" r="3.5" stroke="currentColor" stroke-width="1.5"/><path d="M2 16c0-3.9 3.1-7 7-7s7 3.1 7 7" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg></span>
+          Participants
+          <span class="nav-badge" id="participantCount">0</span>
+        </button>
+        <button class="nav-item" data-panel="templates" id="navTemplates">
+          <span class="nav-icon"><svg width="18" height="18" viewBox="0 0 18 18" fill="none"><rect x="3" y="2" width="12" height="14" rx="2" stroke="currentColor" stroke-width="1.5"/><path d="M6 7h6M6 10h4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg></span>
+          Templates
+        </button>
+        <button class="nav-item" data-panel="certificates" id="navCertificates">
+          <span class="nav-icon"><svg width="18" height="18" viewBox="0 0 18 18" fill="none"><path d="M9 2l2.5 5 5.5.8-4 3.9.94 5.5L9 14.8l-4.94 2.4.94-5.5-4-3.9 5.5-.8z" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/></svg></span>
+          Certificates
+        </button>
+        <button class="nav-item" data-panel="send" id="navSend">
+          <span class="nav-icon"><svg width="18" height="18" viewBox="0 0 18 18" fill="none"><path d="M16 2L9 9M16 2l-5 14-2-5-5-2 14-5z" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
+          Send Emails
+        </button>
+      </div>
+    </nav>
+
+    <div class="sidebar-footer">
+      <div class="sidebar-user">
+        <div class="user-avatar" id="userAvatar">O</div>
+        <div class="user-info">
+          <div class="user-name" id="userName">Loading...</div>
+          <div class="user-role">Organizer</div>
+        </div>
+      </div>
+      <button class="logout-btn" id="logoutBtn">
+        <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M6 14H3a1 1 0 01-1-1V3a1 1 0 011-1h3M10 11l4-4-4-4M14 8H6" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        Sign Out
+      </button>
+    </div>
+  </aside>
+
+  <!-- Main -->
+  <div class="main-content">
+    <header class="topbar">
+      <div class="topbar-left">
+        <button class="topbar-menu-btn" id="menuBtn" aria-label="Menu">
+          <svg width="22" height="22" viewBox="0 0 22 22" fill="none"><path d="M3 6h16M3 11h16M3 16h16" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
+        </button>
+        <div>
+          <div class="topbar-title" id="topbarTitle">Overview</div>
+          <div class="topbar-subtitle">Organizer Panel</div>
+        </div>
+      </div>
+      <div class="topbar-right">
+        <button class="btn-secondary" id="refreshBtn">↻ Refresh</button>
+      </div>
+    </header>
+
+    <main class="page-content">
+
+      <!-- Overview Panel -->
+      <div class="panel active" id="panel-overview">
+        <div class="page-header">
+          <h1 class="page-title">Dashboard Overview</h1>
+          <div class="page-actions">
+            <button class="btn-primary" id="addParticipantBtn">+ Add Participant</button>
+          </div>
+        </div>
+
+        <div class="stats-grid">
+          <div class="stat-card">
+            <div class="stat-card-bg" style="background:var(--sky-400)"></div>
+            <div class="stat-card-label">Total Participants</div>
+            <div class="stat-card-value" id="statTotal">0</div>
+            <div class="stat-card-change neutral">All registered participants</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-card-bg" style="background:#8b5cf6"></div>
+            <div class="stat-card-label">Generated</div>
+            <div class="stat-card-value" id="statGenerated">0</div>
+            <div class="stat-card-change up">✓ Certificates created</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-card-bg" style="background:#10b981"></div>
+            <div class="stat-card-label">Sent</div>
+            <div class="stat-card-value" id="statSent">0</div>
+            <div class="stat-card-change up">✓ Emails delivered</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-card-bg" style="background:#f59e0b"></div>
+            <div class="stat-card-label">Pending</div>
+            <div class="stat-card-value" id="statPending">0</div>
+            <div class="stat-card-change neutral">Awaiting generation</div>
+          </div>
+        </div>
+
+        <!-- Quick Actions -->
+        <div class="card">
+          <div class="card-header">
+            <span class="card-title">Quick Actions</span>
+          </div>
+          <div class="card-body" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:16px">
+            <button class="feature-card" style="text-align:left;cursor:pointer;border:none" onclick="switchPanel('participants')">
+              <div class="feature-icon" style="background:linear-gradient(135deg,#e0f2fe,#bae6fd)">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="8" r="4" stroke="#0ea5e9" stroke-width="2"/><path d="M4 20c0-4.4 3.6-8 8-8s8 3.6 8 8" stroke="#0ea5e9" stroke-width="2" stroke-linecap="round"/></svg>
+              </div>
+              <h3 style="font-size:.9rem">Manage Participants</h3>
+              <p style="font-size:.8rem">Add, edit or remove participant records</p>
+            </button>
+            <button class="feature-card" style="text-align:left;cursor:pointer;border:none" onclick="switchPanel('templates')">
+              <div class="feature-icon" style="background:linear-gradient(135deg,#ede9fe,#ddd6fe)">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none"><rect x="4" y="3" width="16" height="18" rx="2" stroke="#8b5cf6" stroke-width="2"/><path d="M8 9h8M8 13h6" stroke="#8b5cf6" stroke-width="2" stroke-linecap="round"/></svg>
+              </div>
+              <h3 style="font-size:.9rem">Upload Template</h3>
+              <p style="font-size:.8rem">Add or update certificate templates</p>
+            </button>
+            <button class="feature-card" style="text-align:left;cursor:pointer;border:none" onclick="switchPanel('certificates')">
+              <div class="feature-icon" style="background:linear-gradient(135deg,#dcfce7,#bbf7d0)">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none"><path d="M12 3l3 6 7 1-5 5 1.18 7L12 19l-6.18 3L7 15 2 10l7-1z" stroke="#10b981" stroke-width="2" stroke-linejoin="round"/></svg>
+              </div>
+              <h3 style="font-size:.9rem">Generate Certificates</h3>
+              <p style="font-size:.8rem">Bulk-generate for all participants</p>
+            </button>
+            <button class="feature-card" style="text-align:left;cursor:pointer;border:none" onclick="switchPanel('send')">
+              <div class="feature-icon" style="background:linear-gradient(135deg,#fef3c7,#fde68a)">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none"><path d="M22 3L11 12M22 3l-7 19-4-7-7-4 19-8z" stroke="#f59e0b" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+              </div>
+              <h3 style="font-size:.9rem">Send Emails</h3>
+              <p style="font-size:.8rem">Notify participants via email</p>
+            </button>
+          </div>
+        </div>
+
+        <!-- Recent Participants -->
+        <div class="card">
+          <div class="card-header">
+            <span class="card-title">Recent Participants</span>
+            <button class="btn-secondary" onclick="switchPanel('participants')">View All</button>
+          </div>
+          <div class="table-wrapper">
+            <table>
+              <thead><tr><th>Name</th><th>Email</th><th>Status</th><th>Action</th></tr></thead>
+              <tbody id="recentParticipantsBody">
+                <tr><td colspan="4" class="table-empty"><span class="empty-icon">👤</span>No participants yet</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- Participants Panel -->
+      <div class="panel" id="panel-participants">
+        <div class="page-header">
+          <h1 class="page-title">Participants</h1>
+          <div class="page-actions">
+            <button class="btn-outline" id="importCsvBtn">📄 Import CSV</button>
+            <button class="btn-primary" id="addParticipantBtn2">+ Add Participant</button>
+          </div>
+        </div>
+
+        <!-- CSV Import -->
+        <div class="card" id="csvImportCard" style="display:none">
+          <div class="card-header">
+            <span class="card-title">Import Participants via CSV</span>
+            <button class="btn-outline" id="closeCsvImport">✕ Close</button>
+          </div>
+          <div class="card-body">
+            <div class="upload-zone" id="csvUploadZone">
+              <div class="upload-zone-icon">📄</div>
+              <h4>Drop CSV file here</h4>
+              <p>Format: name, email (one per row)<br/>First row can be a header</p>
+              <input type="file" id="csvFileInput" accept=".csv"/>
+              <button class="btn-primary" onclick="document.getElementById('csvFileInput').click()">Choose File</button>
+            </div>
+            <div id="csvPreview" style="display:none;margin-top:16px">
+              <p style="font-size:.85rem;color:var(--gray-600);margin-bottom:12px">Preview (<span id="csvCount">0</span> entries found):</p>
+              <div class="table-wrapper" style="max-height:200px;overflow-y:auto">
+                <table><thead><tr><th>Name</th><th>Email</th></tr></thead>
+                <tbody id="csvPreviewBody"></tbody></table>
+              </div>
+              <div style="margin-top:16px;display:flex;gap:10px">
+                <button class="btn-primary" id="importCsvConfirm">Import All</button>
+                <button class="btn-outline" id="cancelCsvImport">Cancel</button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Search & Filter -->
+        <div class="card">
+          <div class="card-header">
+            <div class="filter-row">
+              <div class="search-bar">
+                <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><circle cx="6.5" cy="6.5" r="5" stroke="currentColor" stroke-width="1.5"/><path d="M11 11l3 3" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+                <input type="text" id="searchParticipants" placeholder="Search by name or email…"/>
+              </div>
+              <select class="filter-select" id="statusFilter">
+                <option value="">All Statuses</option>
+                <option value="pending">Pending</option>
+                <option value="generated">Generated</option>
+                <option value="sent">Sent</option>
+              </select>
+            </div>
+          </div>
+          <div class="table-wrapper">
+            <table>
+              <thead>
+                <tr>
+                  <th><input type="checkbox" id="selectAll"/></th>
+                  <th>Name</th><th>Email</th><th>Status</th><th>Certificate</th><th>Actions</th>
+                </tr>
+              </thead>
+              <tbody id="participantsTableBody">
+                <tr><td colspan="6" class="table-empty"><span class="empty-icon">👥</span>No participants yet. Add one or import CSV.</td></tr>
+              </tbody>
+            </table>
+          </div>
+          <div class="card-footer" style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px">
+            <span style="font-size:.82rem;color:var(--gray-500)" id="participantPagination">Showing 0 of 0</span>
+            <div style="display:flex;gap:8px">
+              <button class="btn-outline" id="bulkGenerate">⚡ Generate Selected</button>
+              <button class="btn-outline" id="bulkSend">📨 Send Selected</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Templates Panel -->
+      <div class="panel" id="panel-templates">
+        <div class="page-header">
+          <h1 class="page-title">Certificate Templates</h1>
+        </div>
+        <div class="card">
+          <div class="card-header"><span class="card-title">Upload New Template</span></div>
+          <div class="card-body">
+            <div class="upload-zone" id="templateUploadZone">
+              <div class="upload-zone-icon">🖼️</div>
+              <h4>Upload Certificate Template</h4>
+              <p>Supported: PNG, JPG, PDF (max 10MB)<br/>Participant name will be inserted automatically</p>
+              <input type="file" id="templateFileInput" accept=".png,.jpg,.jpeg,.pdf"/>
+              <button class="btn-primary" onclick="document.getElementById('templateFileInput').click()">Choose Template File</button>
+            </div>
+            <div id="templateUploadProgress" style="display:none;margin-top:20px">
+              <p style="font-size:.85rem;font-weight:600;color:var(--gray-700);margin-bottom:8px">Uploading template…</p>
+              <div class="progress-bar"><div class="progress-fill" id="templateProgressFill" style="width:0%"></div></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Name Position Config -->
+        <div class="card" id="namePosCard" style="display:none">
+          <div class="card-header"><span class="card-title">Name Position Settings</span></div>
+          <div class="card-body">
+            <p style="font-size:.85rem;color:var(--gray-600);margin-bottom:20px">Configure where participant names appear on the certificate:</p>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
+              <div class="form-group"><label>X Position (% from left)</label><input type="number" id="nameX" value="50" min="0" max="100" step="1"/></div>
+              <div class="form-group"><label>Y Position (% from top)</label><input type="number" id="nameY" value="50" min="0" max="100" step="1"/></div>
+              <div class="form-group"><label>Font Size (px)</label><input type="number" id="nameFontSize" value="48" min="12" max="200"/></div>
+              <div class="form-group"><label>Font Color</label><input type="color" id="nameColor" value="#1e293b" style="height:42px;padding:4px"/></div>
+            </div>
+            <button class="btn-primary" id="saveNamePos">Save Settings</button>
+          </div>
+        </div>
+
+        <!-- Existing Templates -->
+        <div class="card">
+          <div class="card-header"><span class="card-title">Existing Templates</span></div>
+          <div class="card-body">
+            <div id="templatesList" class="cert-grid">
+              <div class="table-empty"><span class="empty-icon">🖼️</span>No templates uploaded yet</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Certificates Panel -->
+      <div class="panel" id="panel-certificates">
+        <div class="page-header">
+          <h1 class="page-title">Generated Certificates</h1>
+          <div class="page-actions">
+            <button class="btn-primary" id="generateAllBtn">⚡ Generate All</button>
+          </div>
+        </div>
+
+        <div class="card" style="margin-bottom:20px">
+          <div class="card-body" style="padding:20px">
+            <div style="display:flex;align-items:center;gap:16px;flex-wrap:wrap">
+              <div style="flex:1;min-width:200px">
+                <p style="font-size:.85rem;font-weight:600;color:var(--gray-700);margin-bottom:8px">Generation Progress</p>
+                <div class="progress-bar"><div class="progress-fill" id="genProgressFill" style="width:0%"></div></div>
+                <p style="font-size:.78rem;color:var(--gray-500);margin-top:6px" id="genProgressText">0 of 0 generated</p>
+              </div>
+              <button class="btn-secondary" id="downloadAllBtn">⬇ Download All</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="filter-row" style="margin-bottom:16px">
+          <div class="search-bar">
+            <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><circle cx="6.5" cy="6.5" r="5" stroke="currentColor" stroke-width="1.5"/><path d="M11 11l3 3" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+            <input type="text" id="searchCerts" placeholder="Search certificates…"/>
+          </div>
+        </div>
+
+        <div id="certificatesGrid" class="cert-grid">
+          <div class="table-empty"><span class="empty-icon">🏆</span>No certificates generated yet</div>
+        </div>
+      </div>
+
+      <!-- Send Emails Panel -->
+      <div class="panel" id="panel-send">
+        <div class="page-header">
+          <h1 class="page-title">Send Certificates</h1>
+        </div>
+
+        <div class="card" style="margin-bottom:20px">
+          <div class="card-header"><span class="card-title">Email Notification Settings</span></div>
+          <div class="card-body">
+            <div class="form-group"><label>Email Subject</label><input type="text" id="emailSubject" value="Your Certificate is Ready – Mr.Certi"/></div>
+            <div class="form-group"><label>Email Message</label>
+              <textarea id="emailBody" rows="4">Dear {name},
+
+Your certificate is now available. You can view and download it by logging into Mr.Certi.
+
+Best regards,
+The Organizer</textarea>
+            </div>
+            <div style="display:flex;gap:10px;flex-wrap:wrap">
+              <button class="btn-primary" id="sendAllBtn">📨 Send to All (Generated)</button>
+              <button class="btn-outline" id="sendPendingBtn">Send to Pending Only</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-header"><span class="card-title">Delivery Status</span></div>
+          <div class="table-wrapper">
+            <table>
+              <thead><tr><th>Name</th><th>Email</th><th>Certificate</th><th>Status</th><th>Action</th></tr></thead>
+              <tbody id="sendStatusBody">
+                <tr><td colspan="5" class="table-empty"><span class="empty-icon">📨</span>No data yet</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+    </main>
+  </div>
+</div>
+
+<!-- Add/Edit Participant Modal -->
+<div class="generic-modal-overlay" id="participantModal">
+  <div class="generic-modal">
+    <div class="modal-header">
+      <h3 id="participantModalTitle">Add Participant</h3>
+      <button class="modal-close" id="closeParticipantModal">×</button>
+    </div>
+    <div class="form-group"><label>Full Name</label><input type="text" id="pName" placeholder="Participant's full name"/></div>
+    <div class="form-group"><label>Email Address</label><input type="email" id="pEmail" placeholder="participant@email.com"/></div>
+    <div id="participantModalError" class="auth-error"></div>
+    <div style="display:flex;gap:10px">
+      <button class="btn-primary" id="saveParticipantBtn" style="flex:1">Save Participant</button>
+      <button class="btn-outline" id="cancelParticipantBtn" style="flex:1">Cancel</button>
+    </div>
+  </div>
+</div>
+
+<!-- Toast Container -->
+<div class="toast-container" id="toastContainer"></div>
+
+<script type="module" src="js/organizer.js"></script>
+</body>
+</html>
