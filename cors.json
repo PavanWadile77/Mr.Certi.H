@@ -1,0 +1,26 @@
+[
+  {
+    "origin": [
+      "http://127.0.0.1:5500",
+      "http://localhost:5500",
+      "http://127.0.0.1:3000",
+      "http://localhost:3000",
+      "http://127.0.0.1:5173",
+      "http://localhost:5173"
+    ],
+    "method": ["GET", "POST", "PUT", "DELETE", "HEAD", "OPTIONS"],
+    "maxAgeSeconds": 3600,
+    "responseHeader": [
+      "Content-Type",
+      "Authorization",
+      "Content-Length",
+      "User-Agent",
+      "x-goog-resumable",
+      "x-goog-upload-url",
+      "x-goog-upload-status",
+      "x-goog-upload-command",
+      "x-goog-upload-offset",
+      "x-firebase-storage-version"
+    ]
+  }
+]

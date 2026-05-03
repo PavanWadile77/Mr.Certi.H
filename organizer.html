@@ -9,6 +9,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet"/>
   <link rel="stylesheet" href="css/global.css"/>
+  <link rel="stylesheet" href="css/auth.css"/>
   <link rel="stylesheet" href="css/dashboard.css"/>
 </head>
 <body style="background:var(--gray-50)">
@@ -222,7 +223,7 @@
               <h4>Drop CSV file here</h4>
               <p>Format: name, email (one per row)<br/>First row can be a header</p>
               <input type="file" id="csvFileInput" accept=".csv"/>
-              <button class="btn-primary" onclick="document.getElementById('csvFileInput').click()">Choose File</button>
+              <button class="btn-primary" id="chooseCsvBtn">Choose File</button>
             </div>
             <div id="csvPreview" style="display:none;margin-top:16px">
               <p style="font-size:.85rem;color:var(--gray-600);margin-bottom:12px">Preview (<span id="csvCount">0</span> entries found):</p>
@@ -290,7 +291,7 @@
               <h4>Upload Certificate Template</h4>
               <p>Supported: PNG, JPG, PDF (max 10MB)<br/>Participant name will be inserted automatically</p>
               <input type="file" id="templateFileInput" accept=".png,.jpg,.jpeg,.pdf"/>
-              <button class="btn-primary" onclick="document.getElementById('templateFileInput').click()">Choose Template File</button>
+              <button class="btn-primary" id="chooseTemplateBtn">Choose Template File</button>
             </div>
             <div id="templateUploadProgress" style="display:none;margin-top:20px">
               <p style="font-size:.85rem;font-weight:600;color:var(--gray-700);margin-bottom:8px">Uploading template…</p>
@@ -299,22 +300,44 @@
           </div>
         </div>
 
+
         <!-- Name Position Config -->
         <div class="card" id="namePosCard" style="display:none">
-          <div class="card-header"><span class="card-title">Name Position Settings</span></div>
+          <div class="card-header"><span class="card-title">Template Editor</span></div>
           <div class="card-body">
-            <p style="font-size:.85rem;color:var(--gray-600);margin-bottom:20px">Configure where participant names appear on the certificate:</p>
-            <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
+            
+            <div style="background:#f1f5f9; border-radius:8px; padding:10px; margin-bottom:20px; overflow:auto; text-align:center;">
+              <canvas id="templateCanvas" style="max-width:100%; height:auto; cursor:crosshair; box-shadow:0 4px 6px rgba(0,0,0,0.1); background:#fff;"></canvas>
+            </div>
+
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px; margin-bottom:16px;">
               <div class="form-group"><label>X Position (% from left)</label><input type="number" id="nameX" value="50" min="0" max="100" step="1"/></div>
               <div class="form-group"><label>Y Position (% from top)</label><input type="number" id="nameY" value="50" min="0" max="100" step="1"/></div>
               <div class="form-group"><label>Font Size (px)</label><input type="number" id="nameFontSize" value="48" min="12" max="200"/></div>
               <div class="form-group"><label>Font Color</label><input type="color" id="nameColor" value="#1e293b" style="height:42px;padding:4px"/></div>
+              <div class="form-group">
+                <label>Font Family</label>
+                <select id="nameFontFamily" class="filter-select" style="width:100%">
+                  <option value="Inter, sans-serif">Inter</option>
+                  <option value="Arial, sans-serif">Arial</option>
+                  <option value="Times New Roman, serif">Times New Roman</option>
+                  <option value="Georgia, serif">Georgia</option>
+                  <option value="Courier New, monospace">Courier New</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label>Alignment</label>
+                <select id="nameAlign" class="filter-select" style="width:100%">
+                  <option value="center">Center</option>
+                  <option value="left">Left</option>
+                  <option value="right">Right</option>
+                </select>
+              </div>
             </div>
-            <button class="btn-primary" id="saveNamePos">Save Settings</button>
+            <button class="btn-primary" id="saveNamePos">Save Template Settings</button>
           </div>
         </div>
 
-        <!-- Existing Templates -->
         <div class="card">
           <div class="card-header"><span class="card-title">Existing Templates</span></div>
           <div class="card-body">

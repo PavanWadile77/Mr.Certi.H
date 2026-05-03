@@ -7,9 +7,38 @@ let currentUser=null;
 function toast(msg,type='info'){let c=document.getElementById('toastContainer');const t=document.createElement('div');t.className=`toast toast-${type}`;t.textContent=msg;c.appendChild(t);setTimeout(()=>{t.classList.add('fadeout');setTimeout(()=>t.remove(),300)},3500)}
 
 onAuthStateChanged(auth,async u=>{if(!u){window.location.href='index.html';return}
-let userData=null;
-try{const d=await Promise.race([getDoc(doc(db,'users',u.uid)),new Promise((_,rej)=>setTimeout(()=>rej(new Error('timeout')),5000))]);if(d.exists()){userData=d.data();if(userData.role!=='participant'){window.location.href='index.html';return}}}catch(e){console.warn('Firestore unavailable, using localStorage:',e.message)}
-if(!userData){const savedRole=localStorage.getItem('mr_certi_role');if(savedRole!=='participant'){window.location.href='index.html';return}userData={name:localStorage.getItem('mr_certi_name')||'Participant',email:u.email,role:'participant'}}
+// Failsafe to hide loader
+setTimeout(() => {
+  const loader = document.getElementById('pageLoading');
+  if (loader && loader.style.display !== 'none') {
+    loader.style.display = 'none';
+    document.getElementById('dashboardWrapper').style.display='flex';
+  }
+}, 8000);
+let isParticipant = false;
+let userData = null;
+
+try {
+  const d = await Promise.race([getDoc(doc(db,'users',u.uid)), new Promise((_,rej)=>setTimeout(()=>rej(new Error('timeout')),5000))]);
+  if (d.exists()) {
+    userData = d.data();
+    if (userData.role === 'participant') {
+      isParticipant = true;
+    }
+  }
+} catch(e) {
+  console.warn('Firestore unavailable:',e.message);
+}
+
+const savedRole = localStorage.getItem('mr_certi_role');
+// Default behavior: if no role is found in DB but localStorage says participant, we let them in.
+// If localStorage says organizer, or DB says organizer, kick out to index.
+if (savedRole === 'organizer' || (userData && userData.role === 'organizer')) {
+  window.location.href = 'index.html';
+  return;
+}
+
+userData = userData || { name: localStorage.getItem('mr_certi_name') || 'Participant', email: u.email, role: 'participant' };
 currentUser={uid:u.uid,...userData};document.getElementById('userName').textContent=currentUser.name||'Participant';document.getElementById('userAvatar').textContent=(currentUser.name||'P')[0].toUpperCase();document.getElementById('heroGreeting').textContent=`Welcome, ${currentUser.name||'Participant'}!`;document.getElementById('profileName').textContent=currentUser.name;document.getElementById('profileEmail').textContent=currentUser.email;document.getElementById('profileAvatar').textContent=(currentUser.name||'P')[0].toUpperCase();document.getElementById('editName').value=currentUser.name||'';
 document.getElementById('pageLoading').style.display='none';document.getElementById('dashboardWrapper').style.display='flex';try{await loadCerts()}catch(e){console.warn('loadCerts error:',e)}});
 

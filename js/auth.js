@@ -91,17 +91,18 @@ onAuthStateChanged(auth, async (user) => {
   if (user && !isAuthAction) {
     const isLanding = window.location.pathname.endsWith('index.html') || window.location.pathname === '/' || window.location.pathname.endsWith('/');
     if (isLanding) {
-      let role = localStorage.getItem('mr_certi_role');
+      let role = 'participant'; // Default to student/participant
       try {
         const userDoc = await firestoreWithTimeout(getDoc(doc(db, 'users', user.uid)), 4000);
-        if (userDoc.exists()) {
+        if (userDoc.exists() && userDoc.data().role) {
           role = userDoc.data().role;
-          localStorage.setItem('mr_certi_role', role);
         }
       } catch (e) {
-        console.warn('Auth state: Firestore unavailable, using localStorage');
+        console.warn('Auth state: Firestore unavailable');
       }
-      if (role) redirectToDashboard(role);
+      
+      localStorage.setItem('mr_certi_role', role);
+      redirectToDashboard(role);
     }
   }
 });
@@ -119,18 +120,23 @@ document.getElementById('loginBtn')?.addEventListener('click', async () => {
   try {
     const cred = await signInWithEmailAndPassword(auth, email, password);
 
-    // Auth succeeded! Get role
-    let role = localStorage.getItem('mr_certi_role') || 'participant';
+    // Auth succeeded! Get role securely from database
+    let role = 'participant'; // Default to student/participant
+    let userName = '';
+    
     try {
       const userDoc = await firestoreWithTimeout(getDoc(doc(db, 'users', cred.user.uid)), 4000);
-      if (userDoc.exists()) {
+      if (userDoc.exists() && userDoc.data().role) {
         role = userDoc.data().role;
-        localStorage.setItem('mr_certi_role', role);
-        localStorage.setItem('mr_certi_name', userDoc.data().name || '');
+        userName = userDoc.data().name || '';
       }
     } catch (e) {
-      console.warn('Firestore unavailable during login, using localStorage role');
+      console.warn('Firestore unavailable during login');
     }
+
+    // Set storage explicitly for the current valid session
+    localStorage.setItem('mr_certi_role', role);
+    localStorage.setItem('mr_certi_name', userName);
 
     showToast('Logged in successfully!', 'success');
     setTimeout(() => redirectToDashboard(role), 500);
