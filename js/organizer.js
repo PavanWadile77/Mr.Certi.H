@@ -97,24 +97,26 @@ function drawEditorPreview() {
   const canvas = document.getElementById('templateCanvas');
   const ctx = canvas.getContext('2d');
   
-  ctx.clearRect(0,0,canvas.width,canvas.height);
-  ctx.drawImage(editorImg, 0, 0);
+  document.fonts.ready.then(() => {
+    ctx.clearRect(0,0,canvas.width,canvas.height);
+    ctx.drawImage(editorImg, 0, 0);
 
-  const pctX = parseInt(document.getElementById('nameX').value || 50);
-  const pctY = parseInt(document.getElementById('nameY').value || 50);
-  const size = parseInt(document.getElementById('nameFontSize').value || 48);
-  const color = document.getElementById('nameColor').value || '#1e293b';
-  const family = document.getElementById('nameFontFamily').value || 'Inter, sans-serif';
-  const align = document.getElementById('nameAlign').value || 'center';
+    const pctX = parseInt(document.getElementById('nameX').value || 50);
+    const pctY = parseInt(document.getElementById('nameY').value || 50);
+    const size = parseInt(document.getElementById('nameFontSize').value || 48);
+    const color = document.getElementById('nameColor').value || '#1e293b';
+    const family = document.getElementById('nameFontFamily').value || 'Inter, sans-serif';
+    const align = document.getElementById('nameAlign').value || 'center';
 
-  const x = (pctX / 100) * canvas.width;
-  const y = (pctY / 100) * canvas.height;
+    const x = (pctX / 100) * canvas.width;
+    const y = (pctY / 100) * canvas.height;
 
-  ctx.fillStyle = color;
-  ctx.font = `bold ${size}px ${family}`;
-  ctx.textAlign = align;
-  ctx.textBaseline = 'middle';
-  ctx.fillText("Sample Name", x, y);
+    ctx.fillStyle = color;
+    ctx.font = `bold ${size}px ${family}`;
+    ctx.textAlign = align;
+    ctx.textBaseline = 'middle';
+    ctx.fillText("Sample Name", x, y);
+  });
 }
 
 ['nameX', 'nameY', 'nameFontSize', 'nameColor', 'nameFontFamily', 'nameAlign'].forEach(id => {
@@ -446,6 +448,10 @@ for(let i=0;i<list.length;i++){
     const canvas=document.createElement('canvas');
     canvas.width=w; canvas.height=h;
     const ctx=canvas.getContext('2d');
+    
+    // Ensure premium fonts are loaded before drawing
+    await document.fonts.ready;
+    
     ctx.drawImage(img,0,0,w,h);
 
     // Scale font size proportionally if image was downscaled
