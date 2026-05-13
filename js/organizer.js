@@ -1,6 +1,6 @@
-import{initializeApp}from"https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";import{getAuth,onAuthStateChanged,signOut}from"https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";import{getFirestore,collection,doc,setDoc,getDoc,getDocs,deleteDoc,query,where,orderBy,serverTimestamp,updateDoc}from"https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";import{getStorage,ref,uploadBytes,getDownloadURL}from"https://www.gstatic.com/firebasejs/10.12.0/firebase-storage.js";
+import{initializeApp}from"https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";import{getAuth,onAuthStateChanged,signOut}from"https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";import{getFirestore,collection,doc,setDoc,getDoc,getDocs,deleteDoc,query,where,orderBy,serverTimestamp,updateDoc}from"https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 const firebaseConfig={apiKey:"AIzaSyBuTV1Yeh77iWt8nJ8V09gUNUhagyhg4iY",authDomain:"mr-certi.firebaseapp.com",projectId:"mr-certi",storageBucket:"mr-certi.firebasestorage.app",messagingSenderId:"60676407665",appId:"1:60676407665:web:1113311464e6b6dc45b6d0",measurementId:"G-CRDZXN6TYD"};
-const app=initializeApp(firebaseConfig),auth=getAuth(app),db=getFirestore(app),storage=getStorage(app);
+const app=initializeApp(firebaseConfig),auth=getAuth(app),db=getFirestore(app);
 let currentUser=null,participants=[],templates=[];
 
 function toast(msg,type='info'){let c=document.getElementById('toastContainer');if(!c){c=document.createElement('div');c.className='toast-container';c.id='toastContainer';document.body.appendChild(c);}const t=document.createElement('div');t.className=`toast toast-${type}`;t.textContent=msg;c.appendChild(t);setTimeout(()=>{t.classList.add('fadeout');setTimeout(()=>t.remove(),300)},3500)}
@@ -274,6 +274,36 @@ templateZone?.addEventListener('click',e=>{
 if(e.target.tagName!=='BUTTON'&&!e.target.closest('button')){
 document.getElementById('templateFileInput')?.click()}});
 
+// Convert image file to compressed base64 data URL (bypasses Firebase Storage)
+function fileToBase64(file, maxWidth = 1800, quality = 0.6) {
+  return new Promise((resolve, reject) => {
+    // PDFs: read as-is
+    if (file.type === 'application/pdf') {
+      const reader = new FileReader();
+      reader.onload = () => resolve(reader.result);
+      reader.onerror = () => reject(new Error('Failed to read PDF'));
+      reader.readAsDataURL(file);
+      return;
+    }
+    const img = new Image();
+    const url = URL.createObjectURL(file);
+    img.onload = () => {
+      URL.revokeObjectURL(url);
+      let w = img.naturalWidth, h = img.naturalHeight;
+      if (w > maxWidth) { h = Math.round(h * (maxWidth / w)); w = maxWidth; }
+      const canvas = document.createElement('canvas');
+      canvas.width = w; canvas.height = h;
+      const ctx = canvas.getContext('2d');
+      ctx.drawImage(img, 0, 0, w, h);
+      const dataUrl = canvas.toDataURL('image/jpeg', quality);
+      console.log(`Compressed: ${(file.size/1024).toFixed(0)}KB → ${(dataUrl.length/1024).toFixed(0)}KB (base64)`);
+      resolve(dataUrl);
+    };
+    img.onerror = () => { URL.revokeObjectURL(url); reject(new Error('Failed to load image')); };
+    img.src = url;
+  });
+}
+
 let isUploading=false;
 async function uploadTemplate(file){
 if(isUploading){toast('Upload already in progress…','warning');return}
@@ -291,23 +321,19 @@ const originalBtnText=uploadBtn?.textContent||'Choose Template File';
 
 progressEl.style.display='block';
 fillEl.style.width='10%';
-if(uploadBtn){uploadBtn.disabled=true;uploadBtn.textContent='Uploading…';uploadBtn.style.opacity='0.7'}
-toast(`Uploading "${file.name}"…`,'info');
+if(uploadBtn){uploadBtn.disabled=true;uploadBtn.textContent='Processing…';uploadBtn.style.opacity='0.7'}
+toast(`Processing "${file.name}"…`,'info');
 
 try{
-// Step 1: Upload to Firebase Storage
+// Step 1: Compress and convert to base64 data URL
 fillEl.style.width='30%';
-const sRef=ref(storage,`templates/${currentUser.uid}/${Date.now()}_${file.name}`);
-await uploadBytes(sRef,file);
+const dataUrl = await fileToBase64(file);
+if(uploadBtn){uploadBtn.textContent='Saving…'}
 
-// Step 2: Get download URL
+// Step 2: Save directly to Firestore (no Firebase Storage needed!)
 fillEl.style.width='60%';
-const url=await getDownloadURL(sRef);
-
-// Step 3: Save to Firestore
-fillEl.style.width='80%';
 const id=crypto.randomUUID();
-await setDoc(doc(db,'certificates',id),{id,templateUrl:url,createdBy:currentUser.uid,createdAt:serverTimestamp()});
+await setDoc(doc(db,'certificates',id),{id,templateUrl:dataUrl,createdBy:currentUser.uid,createdAt:serverTimestamp()});
 
 fillEl.style.width='100%';
 toast('✅ Template uploaded successfully!','success');
@@ -320,9 +346,7 @@ await loadData();
 }catch(e){
 console.error('Template upload error:',e);
 let errMsg='Upload failed: ';
-if(e.code==='storage/unauthorized'){errMsg+='Permission denied. Check Firebase Storage rules.'}
-else if(e.code==='storage/canceled'){errMsg+='Upload was cancelled.'}
-else if(e.code==='storage/retry-limit-exceeded'){errMsg+='Network error. Please check your connection and try again.'}
+if(e.message?.includes('longer than')||e.message?.includes('exceeds the maximum')){errMsg+='Image is too large even after compression. Try a smaller image.'}
 else if(e.message?.includes('Failed to fetch')||e.message?.includes('NetworkError')){errMsg+='Network error. Please check your internet connection.'}
 else{errMsg+=e.message||'Unknown error'}
 toast(errMsg,'error');
@@ -334,7 +358,7 @@ setTimeout(()=>{progressEl.style.display='none';fillEl.style.width='0%'},2000)}}
 // Generate certificates (creates canvas-based cert images)
 document.getElementById('generateAllBtn')?.addEventListener('click',generateAllCerts);
 document.getElementById('bulkGenerate')?.addEventListener('click',()=>{const ids=[...document.querySelectorAll('.p-check:checked')].map(c=>c.dataset.id);if(!ids.length){toast('Select participants first','warning');return}generateCerts(participants.filter(p=>ids.includes(p.id)))});
-document.getElementById('bulkSend')?.addEventListener('click',async()=>{const ids=[...document.querySelectorAll('.p-check:checked')].map(c=>c.dataset.id);if(!ids.length){toast('Select participants first','warning');return}const selected=participants.filter(p=>ids.includes(p.id)&&p.certificateUrl);if(!selected.length){toast('Selected participants have no generated certificates','warning');return}toast(`Sending to ${selected.length} selected participants...`,'info');const progFill=document.getElementById('genProgressFill');const progText=document.getElementById('genProgressText');for(let i=0;i<selected.length;i++){const p=selected[i];try{await sendCertificateEmail(p.email,p.name,p.certificateUrl,null);await updateDoc(doc(db,'participants',p.id),{status:'sent'});const pct=Math.round((i+1)/selected.length*100);if(progFill)progFill.style.width=pct+'%';if(progText)progText.textContent=`Sending selected ${i+1} of ${selected.length}...`;await sleep(1500)}catch(e){console.error(e)}}toast('Selected emails sent!','success');await loadData()});
+document.getElementById('bulkSend')?.addEventListener('click',async()=>{const ids=[...document.querySelectorAll('.p-check:checked')].map(c=>c.dataset.id);if(!ids.length){toast('Select participants first','warning');return}const selected=participants.filter(p=>ids.includes(p.id)&&p.certificateUrl);if(!selected.length){toast('Selected participants have no generated certificates','warning');return}toast(`Sending to ${selected.length} selected participants...`,'info');const progFill=document.getElementById('genProgressFill');const progText=document.getElementById('genProgressText');for(let i=0;i<selected.length;i++){const p=selected[i];try{await sendCertificateEmail(p.email,p.name,p.id);await updateDoc(doc(db,'participants',p.id),{status:'sent'});const pct=Math.round((i+1)/selected.length*100);if(progFill)progFill.style.width=pct+'%';if(progText)progText.textContent=`Sending selected ${i+1} of ${selected.length}...`;await sleep(1500)}catch(e){console.error(e)}}toast('Selected emails sent!','success');await loadData()});
 
 // ====== EMAIL CONFIGURATION (EMAILJS) ======
 const EMAILJS_SERVICE_ID = 'service_9ufz44g'; // Replace with your Service ID
@@ -343,12 +367,21 @@ const EMAILJS_PUBLIC_KEY = 'hZB7XEss_dtv2h_LX'; // Replace with your Public Key
 // ===========================================
 
 const sleep = (ms) => new Promise(resolve => setTimeout(resolve, ms));
+// ====== APP URL (update this to your deployed domain) ======
+const APP_URL = 'https://PavanWadile77.github.io/Mr.Certi.H';
+// ========================================================
 
-async function sendCertificateEmail(email, name, certUrl, base64Data) {
+async function sendCertificateEmail(email, name, participantId) {
   if (EMAILJS_SERVICE_ID === 'YOUR_SERVICE_ID') {
     console.warn('EmailJS not configured. Skipping email for ' + email);
     return; 
   }
+  
+  if (!participantId) {
+    throw new Error('Invalid participant ID');
+  }
+  
+  const viewUrl = `${APP_URL}/view-certificate.html?id=${participantId}`;
   
   const payload = {
     service_id: EMAILJS_SERVICE_ID,
@@ -357,9 +390,9 @@ async function sendCertificateEmail(email, name, certUrl, base64Data) {
     template_params: {
       to_email: email,
       to_name: name,
-      message: 'Congratulations! Your certificate is attached.',
-      certificate_url: certUrl,
-      attachment_base64: base64Data || ''
+      message: `Congratulations ${name}! Your certificate has been issued. Click the link below to view and download your certificate.`,
+      certificate_url: viewUrl,
+      attachment_base64: ''
     }
   };
   
@@ -385,7 +418,7 @@ if(!template || !template.templateUrl) {
   toast('Error: No valid template URL found! Please upload a valid template.','error');
   return;
 }
-console.log('Generating certificates using template URL:', template.templateUrl);
+console.log('Generating certificates using template URL:', template.templateUrl.substring(0,80)+'...');
 toast(`Generating ${list.length} certificates...`,'info');
 const nameX=template.nameX ?? parseInt((document.getElementById('nameX')?.value)||50);
 const nameY=template.nameY ?? parseInt((document.getElementById('nameY')?.value)||50);
@@ -394,19 +427,77 @@ const fontColor=template.nameColor ?? (document.getElementById('nameColor')?.val
 const fontFamily=template.nameFontFamily ?? (document.getElementById('nameFontFamily')?.value||'Inter, sans-serif');
 const align=template.nameAlign ?? (document.getElementById('nameAlign')?.value||'center');
 
-for(let i=0;i<list.length;i++){const p=list[i];try{const canvas=document.createElement('canvas');const ctx=canvas.getContext('2d');const img=new Image();img.crossOrigin='anonymous';await new Promise((resolve,reject)=>{img.onload=resolve;img.onerror=()=>reject(new Error('Failed to load uploaded template image from URL'));img.src=template.templateUrl});
-if(img.complete&&img.naturalWidth){canvas.width=img.naturalWidth;canvas.height=img.naturalHeight;ctx.drawImage(img,0,0);ctx.fillStyle=fontColor;ctx.font=`bold ${fontSize}px ${fontFamily}`;ctx.textAlign=align;ctx.textBaseline='middle';ctx.fillText(p.name,canvas.width*nameX/100,canvas.height*nameY/100)}else{throw new Error('Template image has no valid dimensions')}
-const blob=await new Promise(r=>canvas.toBlob(r,'image/png'));const sRef=ref(storage,`certs/${currentUser.uid}/${p.id}.png`);await uploadBytes(sRef,blob);const url=await getDownloadURL(sRef);
-const base64Data=canvas.toDataURL('image/png');
-try {
-  await sendCertificateEmail(p.email, p.name, url, base64Data);
-  await updateDoc(doc(db,'participants',p.id),{certificateUrl:url,status:'sent'});
-} catch(e) {
-  console.error('Email send failed for', p.email, e);
-  await updateDoc(doc(db,'participants',p.id),{certificateUrl:url,status:'generated'});
+let successCount = 0;
+for(let i=0;i<list.length;i++){
+  const p=list[i];
+  try{
+    // Step 1: Load template image
+    const img=new Image();
+    img.crossOrigin='anonymous';
+    await new Promise((resolve,reject)=>{img.onload=resolve;img.onerror=()=>reject(new Error('Failed to load template image'));img.src=template.templateUrl});
+
+    if(!img.complete || !img.naturalWidth) throw new Error('Template image has no valid dimensions');
+
+    // Step 2: Draw certificate on canvas (downscale for Firestore size limit)
+    let w = img.naturalWidth, h = img.naturalHeight;
+    const maxW = 1400;
+    if (w > maxW) { h = Math.round(h * (maxW / w)); w = maxW; }
+    
+    const canvas=document.createElement('canvas');
+    canvas.width=w; canvas.height=h;
+    const ctx=canvas.getContext('2d');
+    ctx.drawImage(img,0,0,w,h);
+
+    // Scale font size proportionally if image was downscaled
+    const scale = w / img.naturalWidth;
+    const scaledFontSize = Math.round(fontSize * scale);
+
+    ctx.fillStyle=fontColor;
+    ctx.font=`bold ${scaledFontSize}px ${fontFamily}`;
+    ctx.textAlign=align;
+    ctx.textBaseline='middle';
+    ctx.fillText(p.name, w*nameX/100, h*nameY/100);
+
+    // Step 3: Convert to compressed base64
+    const certDataUrl = canvas.toDataURL('image/jpeg', 0.5);
+    console.log(`Certificate for ${p.name}: ${(certDataUrl.length/1024).toFixed(0)}KB`);
+
+    // Check size before saving (Firestore doc limit ~1MB)
+    if (certDataUrl.length > 900000) {
+      console.warn(`Certificate for ${p.name} is too large (${(certDataUrl.length/1024).toFixed(0)}KB), compressing further...`);
+      const smallerUrl = canvas.toDataURL('image/jpeg', 0.3);
+      if (smallerUrl.length > 900000) {
+        toast(`Certificate for ${p.name} is too large to save. Try a smaller template.`, 'error');
+        continue;
+      }
+      await updateDoc(doc(db,'participants',p.id),{certificateUrl:smallerUrl,status:'generated'});
+    } else {
+      // Step 4: Save certificate to Firestore FIRST
+      await updateDoc(doc(db,'participants',p.id),{certificateUrl:certDataUrl,status:'generated'});
+    }
+    successCount++;
+    console.log(`✅ Certificate saved for ${p.name}`);
+
+    // Step 5: Try sending email (non-blocking)
+    try {
+      await sendCertificateEmail(p.email, p.name, p.id);
+      await updateDoc(doc(db,'participants',p.id),{status:'sent'});
+    } catch(emailErr) {
+      console.warn('Email failed for', p.email, emailErr.message, '- certificate still saved');
+    }
+
+    // Update progress
+    const pct=Math.round((i+1)/list.length*100);
+    document.getElementById('genProgressFill').style.width=pct+'%';
+    document.getElementById('genProgressText').textContent=`${i+1} of ${list.length} generated`;
+  } catch(e) {
+    console.error('Gen error for',p.name,e);
+    toast(`Error generating for ${p.name}: ${e.message}`,'error');
+  }
 }
-const pct=Math.round((i+1)/list.length*100);document.getElementById('genProgressFill').style.width=pct+'%';document.getElementById('genProgressText').textContent=`${i+1} of ${list.length} generated`}catch(e){console.error('Gen error for',p.name,e)}}
-toast('Certificates generated!','success');await loadData();renderCertGrid()}
+if(successCount > 0) toast(`✅ ${successCount} certificate(s) generated!`,'success');
+else toast('No certificates were generated. Check console for errors.','error');
+await loadData();renderCertGrid()}
 
 function renderCertGrid(){const el=document.getElementById('certificatesGrid');const search=(document.getElementById('searchCerts')?.value||'').toLowerCase();let list=participants.filter(p=>p.certificateUrl);if(search)list=list.filter(p=>(p.name||'').toLowerCase().includes(search)||(p.email||'').toLowerCase().includes(search));
 if(!list.length){el.innerHTML='<div class="table-empty"><span class="empty-icon">🏆</span>No certificates generated yet</div>';return}
@@ -421,7 +512,7 @@ toast(`Starting bulk send for ${list.length} participants...`,'info');
 const progFill=document.getElementById('genProgressFill');
 const progText=document.getElementById('genProgressText');
 for(let i=0;i<list.length;i++){const p=list[i];try{if(p.status !== 'sent'){
-  await sendCertificateEmail(p.email, p.name, p.certificateUrl, null);
+  await sendCertificateEmail(p.email, p.name, p.id);
   await updateDoc(doc(db,'participants',p.id),{status:'sent'});
   const pct=Math.round((i+1)/list.length*100);
   if(progFill)progFill.style.width=pct+'%';
@@ -435,7 +526,7 @@ toast(`Sending pending emails to ${list.length} participants...`,'info');
 const progFill=document.getElementById('genProgressFill');
 const progText=document.getElementById('genProgressText');
 for(let i=0;i<list.length;i++){const p=list[i];try{
-  await sendCertificateEmail(p.email, p.name, p.certificateUrl, null);
+  await sendCertificateEmail(p.email, p.name, p.id);
   await updateDoc(doc(db,'participants',p.id),{status:'sent'});
   const pct=Math.round((i+1)/list.length*100);
   if(progFill)progFill.style.width=pct+'%';
@@ -444,7 +535,7 @@ for(let i=0;i<list.length;i++){const p=list[i];try{
 } catch(e){console.error('Failed to send pending to', p.email, e)}}
 toast('Pending emails sent!','success');await loadData()});
 
-window.sendSingleEmail=async function(id){try{const p=participants.find(x=>x.id===id);if(p){await sendCertificateEmail(p.email, p.name, p.certificateUrl, null);await updateDoc(doc(db,'participants',id),{status:'sent'});toast('Sent successfully!','success');await loadData()}}catch(e){toast('Error: '+e.message,'error')}};
+window.sendSingleEmail=async function(id){try{const p=participants.find(x=>x.id===id);if(p){await sendCertificateEmail(p.email, p.name, p.id);await updateDoc(doc(db,'participants',id),{status:'sent'});toast('Sent successfully!','success');await loadData()}}catch(e){toast('Error: '+e.message,'error')}};
 
 document.getElementById('saveNamePos')?.addEventListener('click', async () => {
   if (!templates.length) return;
