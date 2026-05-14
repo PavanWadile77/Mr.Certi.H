@@ -7,10 +7,85 @@
   <meta name="description" content="Organizer dashboard for Mr.Certi – upload templates, manage participants, generate and send certificates."/>
   <link rel="preconnect" href="https://fonts.googleapis.com"/>
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
-  <link href="https://fonts.googleapis.com/css2?family=Abril+Fatface&family=Alex+Brush&family=Bebas+Neue&family=Caveat:wght@400;700&family=Cinzel:wght@400;600;700&family=Dancing+Script:wght@400;700&family=EB+Garamond:wght@400;600&family=Great+Vibes&family=Inter:wght@300;400;500;600;700&family=Lato:wght@400;700&family=Lobster&family=Lora:ital,wght@0,400;0,600;1,400&family=Merriweather:ital,wght@0,400;0,700;1,400&family=Montserrat:wght@400;600;700&family=Open+Sans:wght@400;600&family=Oswald:wght@400;600&family=PT+Serif:wght@400;700&family=Pacifico&family=Playfair+Display:ital,wght@0,400;0,600;0,700;1,400&family=Poppins:wght@400;600;700&family=Righteous&family=Roboto:wght@400;500;700&family=Satisfy&display=swap" rel="stylesheet"/>
+  <link href="https://fonts.googleapis.com/css2?family=Abril+Fatface&family=Alex+Brush&family=Allura&family=Bebas+Neue&family=Caveat:wght@400;700&family=Cinzel:wght@400;600;700&family=Cormorant+Garamond:wght@400;600&family=Dancing+Script:wght@400;700&family=EB+Garamond:wght@400;600&family=Great+Vibes&family=Inter:wght@300;400;500;600;700&family=Lato:wght@400;700&family=Libre+Baskerville:wght@400;700&family=Lobster&family=Lora:ital,wght@0,400;0,600;1,400&family=Marcellus&family=Merriweather:ital,wght@0,400;0,700;1,400&family=Montserrat:wght@400;600;700&family=Open+Sans:wght@400;600&family=Oswald:wght@400;600&family=PT+Serif:wght@400;700&family=Pacifico&family=Pinyon+Script&family=Playfair+Display:ital,wght@0,400;0,600;0,700;1,400&family=Poppins:wght@400;600;700&family=Righteous&family=Roboto:wght@400;500;700&family=Satisfy&display=swap" rel="stylesheet"/>
   <link rel="stylesheet" href="css/global.css"/>
   <link rel="stylesheet" href="css/auth.css"/>
   <link rel="stylesheet" href="css/dashboard.css"/>
+  <style>
+    /* Premium Color Picker Styles */
+    .color-picker-wrapper {
+      background: white;
+      border: 1px solid var(--gray-300);
+      border-radius: 12px;
+      padding: 10px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+    }
+    .color-input-container {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    input[type="color"]#nameColor {
+      -webkit-appearance: none;
+      appearance: none;
+      width: 40px;
+      height: 40px;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      padding: 0;
+      overflow: hidden;
+      background: none;
+    }
+    input[type="color"]#nameColor::-webkit-color-swatch-wrapper {
+      padding: 0;
+    }
+    input[type="color"]#nameColor::-webkit-color-swatch {
+      border: none;
+      border-radius: 8px;
+      box-shadow: inset 0 0 0 1px rgba(0,0,0,0.1);
+    }
+    .color-hex-input {
+      flex: 1;
+      border: 1px solid var(--gray-300);
+      border-radius: 8px;
+      padding: 8px 12px;
+      font-family: monospace;
+      font-size: 0.95rem;
+      color: var(--gray-700);
+      background: var(--gray-50);
+      transition: all 0.2s ease;
+      width: 100%;
+    }
+    .color-hex-input:focus {
+      outline: none;
+      border-color: var(--sky-500);
+      box-shadow: 0 0 0 3px var(--sky-100);
+      background: white;
+    }
+    .preset-colors {
+      display: flex;
+      gap: 6px;
+      flex-wrap: wrap;
+    }
+    .color-swatch {
+      width: 24px;
+      height: 24px;
+      border-radius: 6px;
+      border: none;
+      cursor: pointer;
+      box-shadow: inset 0 0 0 1px rgba(0,0,0,0.1);
+      transition: transform 0.15s ease, box-shadow 0.15s ease;
+    }
+    .color-swatch:hover {
+      transform: scale(1.15);
+      box-shadow: inset 0 0 0 1px rgba(0,0,0,0.2), 0 2px 5px rgba(0,0,0,0.15);
+      z-index: 2;
+    }
+  </style>
 </head>
 <body style="background:var(--gray-50)">
 
@@ -314,43 +389,63 @@
               <div class="form-group"><label>X Position (% from left)</label><input type="number" id="nameX" value="50" min="0" max="100" step="1"/></div>
               <div class="form-group"><label>Y Position (% from top)</label><input type="number" id="nameY" value="50" min="0" max="100" step="1"/></div>
               <div class="form-group"><label>Font Size (px)</label><input type="number" id="nameFontSize" value="48" min="12" max="200"/></div>
-              <div class="form-group"><label>Font Color</label><input type="color" id="nameColor" value="#1e293b" style="height:42px;padding:4px"/></div>
+              <div class="form-group" style="grid-column: span 2;">
+                <label>Font Color</label>
+                <div class="color-picker-wrapper">
+                  <div class="color-input-container">
+                    <input type="color" id="nameColor" value="#1e293b"/>
+                    <input type="text" id="nameColorHex" value="#1e293b" class="color-hex-input" maxlength="7"/>
+                  </div>
+                  <div class="preset-colors">
+                    <button class="color-swatch" style="background:#1e293b" data-color="#1e293b" title="Slate 800"></button>
+                    <button class="color-swatch" style="background:#0f172a" data-color="#0f172a" title="Slate 900"></button>
+                    <button class="color-swatch" style="background:#000000" data-color="#000000" title="Black"></button>
+                    <button class="color-swatch" style="background:#ffffff" data-color="#ffffff" title="White"></button>
+                    <button class="color-swatch" style="background:#0ea5e9" data-color="#0ea5e9" title="Sky Blue"></button>
+                    <button class="color-swatch" style="background:#2563eb" data-color="#2563eb" title="Royal Blue"></button>
+                    <button class="color-swatch" style="background:#8b5cf6" data-color="#8b5cf6" title="Purple"></button>
+                    <button class="color-swatch" style="background:#db2777" data-color="#db2777" title="Pink"></button>
+                    <button class="color-swatch" style="background:#ef4444" data-color="#ef4444" title="Red"></button>
+                    <button class="color-swatch" style="background:#f59e0b" data-color="#f59e0b" title="Amber"></button>
+                    <button class="color-swatch" style="background:#10b981" data-color="#10b981" title="Emerald"></button>
+                    <button class="color-swatch" style="background:#64748b" data-color="#64748b" title="Slate 500"></button>
+                  </div>
+                </div>
+              </div>
               <div class="form-group">
                 <label>Font Family</label>
                 <select id="nameFontFamily" class="filter-select" style="width:100%">
-                  <optgroup label="Cursive & Handwriting">
+                  <optgroup label="Official Document Fonts (System)">
+                    <option value="'Times New Roman', serif">Times New Roman</option>
+                    <option value="Garamond, serif">Garamond</option>
+                    <option value="Georgia, serif">Georgia</option>
+                    <option value="Cambria, serif">Cambria</option>
+                    <option value="Baskerville, serif">Baskerville</option>
+                    <option value="'Book Antiqua', serif">Book Antiqua</option>
+                    <option value="Palatino, 'Palatino Linotype', serif">Palatino</option>
+                    <option value="'Century Schoolbook', serif">Century Schoolbook</option>
+                  </optgroup>
+                  <optgroup label="Certificate & Premium (Google)">
+                    <option value="'Cinzel', serif">Cinzel</option>
+                    <option value="'Marcellus', serif">Marcellus (Trajan Style)</option>
+                    <option value="'Playfair Display', serif">Playfair Display</option>
+                    <option value="'Libre Baskerville', serif">Libre Baskerville</option>
+                    <option value="'Cormorant Garamond', serif">Cormorant Garamond</option>
+                    <option value="'Merriweather', serif">Merriweather</option>
+                  </optgroup>
+                  <optgroup label="Signature & Cursive">
                     <option value="'Great Vibes', cursive">Great Vibes</option>
+                    <option value="'Pinyon Script', cursive">Pinyon Script</option>
+                    <option value="'Allura', cursive">Allura</option>
+                    <option value="'Alex Brush', cursive">Alex Brush</option>
                     <option value="'Dancing Script', cursive">Dancing Script</option>
                     <option value="'Pacifico', cursive">Pacifico</option>
-                    <option value="'Satisfy', cursive">Satisfy</option>
-                    <option value="'Caveat', cursive">Caveat</option>
-                    <option value="'Alex Brush', cursive">Alex Brush</option>
-                  </optgroup>
-                  <optgroup label="Elegant & Serif (Classic)">
-                    <option value="'Cinzel', serif">Cinzel</option>
-                    <option value="'Playfair Display', serif">Playfair Display</option>
-                    <option value="'Merriweather', serif">Merriweather</option>
-                    <option value="'Lora', serif">Lora</option>
-                    <option value="'PT Serif', serif">PT Serif</option>
-                    <option value="'EB Garamond', serif">EB Garamond</option>
-                    <option value="Georgia, serif">Georgia</option>
-                    <option value="'Times New Roman', serif">Times New Roman</option>
                   </optgroup>
                   <optgroup label="Modern & Sans-Serif">
                     <option value="'Montserrat', sans-serif">Montserrat</option>
                     <option value="'Poppins', sans-serif">Poppins</option>
                     <option value="'Inter', sans-serif">Inter</option>
-                    <option value="'Roboto', sans-serif">Roboto</option>
-                    <option value="'Open Sans', sans-serif">Open Sans</option>
-                    <option value="'Lato', sans-serif">Lato</option>
                     <option value="Arial, sans-serif">Arial</option>
-                  </optgroup>
-                  <optgroup label="Display & Bold">
-                    <option value="'Oswald', sans-serif">Oswald</option>
-                    <option value="'Bebas Neue', sans-serif">Bebas Neue</option>
-                    <option value="'Righteous', cursive">Righteous</option>
-                    <option value="'Lobster', cursive">Lobster</option>
-                    <option value="'Abril Fatface', cursive">Abril Fatface</option>
                   </optgroup>
                 </select>
               </div>
@@ -381,7 +476,8 @@
       <div class="panel" id="panel-certificates">
         <div class="page-header">
           <h1 class="page-title">Generated Certificates</h1>
-          <div class="page-actions">
+          <div class="page-actions" style="display:flex;gap:10px;">
+            <button class="btn-outline" id="printAllBtn">🖨️ Print All</button>
             <button class="btn-primary" id="generateAllBtn">⚡ Generate All</button>
           </div>
         </div>

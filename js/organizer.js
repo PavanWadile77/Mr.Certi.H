@@ -55,7 +55,7 @@ document.getElementById('userName').textContent=currentUser.name||'Organizer';do
 
 async function loadData(){await loadParticipants();await loadTemplates();updateStats()}
 async function loadParticipants(){try{const snap=await getDocs(query(collection(db,'participants'),where('createdBy','==',currentUser.uid)));participants=[];snap.forEach(d=>participants.push({id:d.id,...d.data()}));renderParticipants();document.getElementById('participantCount').textContent=participants.length}catch(e){console.error(e);try{const snap=await getDocs(collection(db,'participants'));participants=[];snap.forEach(d=>participants.push({id:d.id,...d.data()}));renderParticipants();document.getElementById('participantCount').textContent=participants.length}catch(e2){console.error(e2)}}}
-async function loadTemplates(){try{const snap=await getDocs(query(collection(db,'certificates'),where('createdBy','==',currentUser.uid)));templates=[];snap.forEach(d=>templates.push({id:d.id,...d.data()}));renderTemplates()}catch(e){console.error('loadTemplates error:',e);try{const snap=await getDocs(collection(db,'certificates'));templates=[];snap.forEach(d=>templates.push({id:d.id,...d.data()}));renderTemplates()}catch(e2){console.error('loadTemplates fallback error:',e2);toast('Failed to load templates: '+e2.message,'error')}}}
+async function loadTemplates(){try{const snap=await getDocs(query(collection(db,'certificates'),where('createdBy','==',currentUser.uid)));templates=[];snap.forEach(d=>templates.push({id:d.id,...d.data()}));templates.sort((a,b)=>(b.createdAt?.seconds||0)-(a.createdAt?.seconds||0));renderTemplates()}catch(e){console.error('loadTemplates error:',e);try{const snap=await getDocs(collection(db,'certificates'));templates=[];snap.forEach(d=>templates.push({id:d.id,...d.data()}));templates.sort((a,b)=>(b.createdAt?.seconds||0)-(a.createdAt?.seconds||0));renderTemplates()}catch(e2){console.error('loadTemplates fallback error:',e2);toast('Failed to load templates: '+e2.message,'error')}}}
 
 function updateStats(){const total=participants.length,gen=participants.filter(p=>p.status==='generated'||p.status==='sent').length,sent=participants.filter(p=>p.status==='sent').length;document.getElementById('statTotal').textContent=total;document.getElementById('statGenerated').textContent=gen;document.getElementById('statSent').textContent=sent;document.getElementById('statPending').textContent=total-gen;const pct=total?Math.round(gen/total*100):0;document.getElementById('genProgressFill').style.width=pct+'%';document.getElementById('genProgressText').textContent=`${gen} of ${total} generated`;renderRecent();renderSendStatus()}
 
@@ -75,7 +75,9 @@ function initTemplateEditor(t) {
   document.getElementById('nameX').value = t.nameX ?? 50;
   document.getElementById('nameY').value = t.nameY ?? 50;
   document.getElementById('nameFontSize').value = t.nameFontSize ?? 48;
-  document.getElementById('nameColor').value = t.nameColor ?? '#1e293b';
+  const color = t.nameColor ?? '#1e293b';
+  document.getElementById('nameColor').value = color;
+  if (document.getElementById('nameColorHex')) document.getElementById('nameColorHex').value = color;
   document.getElementById('nameFontFamily').value = t.nameFontFamily ?? 'Inter, sans-serif';
   document.getElementById('nameAlign').value = t.nameAlign ?? 'center';
 
@@ -119,8 +121,40 @@ function drawEditorPreview() {
   });
 }
 
-['nameX', 'nameY', 'nameFontSize', 'nameColor', 'nameFontFamily', 'nameAlign'].forEach(id => {
+['nameX', 'nameY', 'nameFontSize', 'nameFontFamily', 'nameAlign'].forEach(id => {
   document.getElementById(id)?.addEventListener('input', drawEditorPreview);
+});
+
+// Color Picker Sync Logic
+const nameColorInput = document.getElementById('nameColor');
+const nameColorHex = document.getElementById('nameColorHex');
+const colorSwatches = document.querySelectorAll('.color-swatch');
+
+function updateColor(color) {
+  if(nameColorInput) nameColorInput.value = color;
+  if(nameColorHex) nameColorHex.value = color;
+  drawEditorPreview();
+}
+
+nameColorInput?.addEventListener('input', (e) => {
+  if(nameColorHex) nameColorHex.value = e.target.value;
+  drawEditorPreview();
+});
+
+nameColorHex?.addEventListener('input', (e) => {
+  let val = e.target.value;
+  if (!val.startsWith('#')) val = '#' + val;
+  if (val.match(/^#[0-9A-Fa-f]{6}$/)) {
+    if(nameColorInput) nameColorInput.value = val;
+    drawEditorPreview();
+  }
+});
+
+colorSwatches.forEach(swatch => {
+  swatch.addEventListener('click', (e) => {
+    e.preventDefault();
+    updateColor(e.target.dataset.color);
+  });
 });
 
 document.getElementById('templateCanvas')?.addEventListener('mousedown', (e) => {
@@ -277,12 +311,14 @@ if(e.target.tagName!=='BUTTON'&&!e.target.closest('button')){
 document.getElementById('templateFileInput')?.click()}});
 
 // Convert image file to compressed base64 data URL (bypasses Firebase Storage)
-function fileToBase64(file, maxWidth = 1800, quality = 0.6) {
+function fileToBase64(file, maxWidth = 1600) {
   return new Promise((resolve, reject) => {
-    // PDFs: read as-is
     if (file.type === 'application/pdf') {
       const reader = new FileReader();
-      reader.onload = () => resolve(reader.result);
+      reader.onload = () => {
+        if (reader.result.length > 900000) reject(new Error('PDF file is too large. Please convert it to a JPG image and upload it instead.'));
+        else resolve(reader.result);
+      };
       reader.onerror = () => reject(new Error('Failed to read PDF'));
       reader.readAsDataURL(file);
       return;
@@ -297,8 +333,27 @@ function fileToBase64(file, maxWidth = 1800, quality = 0.6) {
       canvas.width = w; canvas.height = h;
       const ctx = canvas.getContext('2d');
       ctx.drawImage(img, 0, 0, w, h);
-      const dataUrl = canvas.toDataURL('image/jpeg', quality);
-      console.log(`Compressed: ${(file.size/1024).toFixed(0)}KB → ${(dataUrl.length/1024).toFixed(0)}KB (base64)`);
+      let quality = 0.7;
+      let dataUrl = canvas.toDataURL('image/jpeg', quality);
+      
+      // Aggressively compress until it fits under the 900KB limit for Firestore
+      while (dataUrl.length > 900000 && quality > 0.1) {
+        quality -= 0.15;
+        dataUrl = canvas.toDataURL('image/jpeg', Math.max(0.1, quality));
+      }
+      
+      // If it's still too big, downscale the resolution
+      if (dataUrl.length > 900000) {
+        w = Math.round(w * 0.7); h = Math.round(h * 0.7);
+        canvas.width = w; canvas.height = h;
+        ctx.drawImage(img, 0, 0, w, h);
+        dataUrl = canvas.toDataURL('image/jpeg', 0.5);
+        if (dataUrl.length > 900000) {
+          reject(new Error('Image is too complex/large to save even after maximum compression. Please use a simpler template.'));
+          return;
+        }
+      }
+      
       resolve(dataUrl);
     };
     img.onerror = () => { URL.revokeObjectURL(url); reject(new Error('Failed to load image')); };
@@ -359,6 +414,42 @@ setTimeout(()=>{progressEl.style.display='none';fillEl.style.width='0%'},2000)}}
 
 // Generate certificates (creates canvas-based cert images)
 document.getElementById('generateAllBtn')?.addEventListener('click',generateAllCerts);
+
+document.getElementById('printAllBtn')?.addEventListener('click', () => {
+  const list = participants.filter(p => p.certificateUrl);
+  if (!list.length) { toast('No generated certificates to print.', 'warning'); return; }
+  toast(`Preparing ${list.length} certificates for printing...`, 'info');
+  
+  const printWindow = window.open('', '_blank');
+  if (!printWindow) { toast('Popup blocker prevented printing. Please allow popups.', 'error'); return; }
+  
+  let html = `<!DOCTYPE html><html><head><title>Print Certificates</title>
+  <style>
+    body { margin: 0; padding: 0; background: #fff; }
+    .page { display: flex; justify-content: center; align-items: center; height: 100vh; width: 100vw; page-break-after: always; box-sizing: border-box; }
+    img { max-width: 100%; max-height: 100vh; object-fit: contain; }
+    @media print { @page { margin: 0; size: auto; } body { -webkit-print-color-adjust: exact; print-color-adjust: exact; } }
+  </style></head><body>`;
+  
+  list.forEach(p => { html += `<div class="page"><img src="${p.certificateUrl}" /></div>`; });
+  
+  html += `<script>
+    const imgs = document.querySelectorAll('img');
+    let loaded = 0;
+    function check() { if (loaded >= imgs.length) { setTimeout(() => { window.print(); window.close(); }, 500); } }
+    if (imgs.length === 0) check();
+    imgs.forEach(img => {
+      if (img.complete) loaded++;
+      else { img.onload = () => { loaded++; check(); }; img.onerror = () => { loaded++; check(); }; }
+    });
+    check();
+  </script></body></html>`;
+  
+  printWindow.document.open();
+  printWindow.document.write(html);
+  printWindow.document.close();
+});
+
 document.getElementById('bulkGenerate')?.addEventListener('click',()=>{const ids=[...document.querySelectorAll('.p-check:checked')].map(c=>c.dataset.id);if(!ids.length){toast('Select participants first','warning');return}generateCerts(participants.filter(p=>ids.includes(p.id)))});
 document.getElementById('bulkSend')?.addEventListener('click',async()=>{const ids=[...document.querySelectorAll('.p-check:checked')].map(c=>c.dataset.id);if(!ids.length){toast('Select participants first','warning');return}const selected=participants.filter(p=>ids.includes(p.id)&&p.certificateUrl);if(!selected.length){toast('Selected participants have no generated certificates','warning');return}toast(`Sending to ${selected.length} selected participants...`,'info');const progFill=document.getElementById('genProgressFill');const progText=document.getElementById('genProgressText');for(let i=0;i<selected.length;i++){const p=selected[i];try{await sendCertificateEmail(p.email,p.name,p.id);await updateDoc(doc(db,'participants',p.id),{status:'sent'});const pct=Math.round((i+1)/selected.length*100);if(progFill)progFill.style.width=pct+'%';if(progText)progText.textContent=`Sending selected ${i+1} of ${selected.length}...`;await sleep(1500)}catch(e){console.error(e)}}toast('Selected emails sent!','success');await loadData()});
 
